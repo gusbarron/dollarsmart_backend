@@ -1,0 +1,17 @@
+create python virtual environment(venv)
+  python3 -m venv venv
+
+start virutal environment(venv)
+  source venv/bin/activate
+
+Install flask
+  python3 -m pip install flask
+
+to run server after flask install 
+  python3 server.py
+
+install pymongo
+  python3 -m pip install pymongo flask-mongo 'pymongo[srv]'
+
+install certifi 
+  python3 -m pip install certifi
