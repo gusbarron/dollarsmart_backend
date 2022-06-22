@@ -43,11 +43,29 @@ def get_catalog():
 #POST method to create new products
 @app.route("/api/catalog", methods=["POST"])
 def save_product():
-    product = request.get_json()
-    db.product.insert_one(product)    
-    product["_id"] = str(product["_id"])
+    try:
+        product = request.get_json()
+        errors = ""
 
-    return json.dumps(product)
+        if not "title" in product or len(product["title"]) < 5:
+            errors = "Title is required and should have at least 5 characters"
+        
+        if not "image" in product:
+            errors += ", Image is required"
+
+        if not "price" in product or product["price"] < 1:
+            errors += ", Price is required and should be >= 1"
+
+        if errors:
+            return abort(400, errors)
+
+        db.product.insert_one(product)    
+        product["_id"] = str(product["_id"])
+
+        return json.dumps(product)
+    
+    except Exception as ex:
+        return abort(500, F"Unexpected error: {ex}")
 
 
 
@@ -63,12 +81,20 @@ def get_count():
 
 @app.route("/api/product/<id>", methods=["GET"])
 def get_product(id):
+    try:
+        if not ObjectId.is_valid(id):
+            return abort(400, "Invalid ID")
 
-    for prod in catalog:
-        if prod["_id"] == id:
-            return json.dumps(prod)
+        product = db.products.find_one({"_id": ObjectId(id)})
 
-    return abort(404, "Id does not match any product")
+        if not product:
+            abort(404, "Product not found")
+
+        product["_id"] = str(product["_id"])
+        return json.dumps(product)
+
+    except:
+        return abort(500, "Unexpected error")
 
 
 # create and endpoint that returns the sum of all the prices
@@ -85,10 +111,11 @@ def get_total():
 @app.get("/api/products/<category>")
 def products_by_category(category):
     results = []
+    cursor = db.products.find({"category": category})
     category = category.lower()
-    for prod in catalog:
-        if prod["category"].lower == category:
-            results.append(prod)
+    for prod in cursor:
+        prod["_id"] = str(prod["_id"])
+        results.append(prod)
 
     return json.dumps(results)
 
@@ -137,5 +164,29 @@ def get_exe1():
 
     return json.dumps(solution)
 
+######################################################################
+####################### COUPON CODES #################################
+######################################################################
+
+
+@app.route("/api/coupons", methods=["GET"])
+def get_all_coupons():
+    cursor = db.coupons.find({})
+    results = []
+    for cc in cursor:
+        cc["_id"] = str(cc["_id"])
+        results.append(cc)
+    
+    return json.dumps(results)
+
+
+@app.route("/api/coupons", methods=["POST"])
+def save_coupn():
+    coupon = request.get_json()
+
+    db.coupons.inser_one(coupon)
+
+    coupon["_id"] = str(coupon["_id"])
+    return json.dumps(coupon)
 
 app.run(debug=True)
